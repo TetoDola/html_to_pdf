@@ -24,4 +24,4 @@ EXPOSE 8000
 
 # For demonstration, we'll use Gunicorn here:
 # gunicorn <module>:<app_instance> --bind=0.0.0.0:8000
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000"]
