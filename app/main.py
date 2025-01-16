@@ -1,15 +1,13 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify, url_for
 import pdfkit
 from werkzeug.utils import secure_filename
 import os
+
 app = Flask(__name__)
 
-# needs to be setup on server as pat
-#config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-
-#config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")
+# config
 path_wkhtmltopdf = "/usr/bin/wkhtmltopdf"
-config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf) # because chatgpt said so
+config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
 
 # Check documentation for more options
 options = {
@@ -20,15 +18,36 @@ options = {
     'margin-left': '0.75in',
 }
 
-# Post request handler
+# Directory to store generated PDFs
+PDF_STORAGE_DIR = 'pdf_storage'
+os.makedirs(PDF_STORAGE_DIR, exist_ok=True)  # Create if it doesn't exist
+
+
 @app.route('/generate-pdf', methods=['POST'])
 def generate_pdf():
     data = request.get_json()
-    html_content = data.get('html', '') # get html part in json
-    pdf_content = pdfkit.from_string(html_content, False, configuration=config, options=options) # conversion
-    response = make_response(pdf_content)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'attachment; filename=my_document.pdf'
-    return response
+    html_content = data.get('html', '')  # Get HTML part in JSON
+    filename = secure_filename(data.get('filename', 'document.pdf'))  # filename option
+    filepath = os.path.join(PDF_STORAGE_DIR, filename)
+
+    # Generate PDF and save to file
+    pdfkit.from_string(html_content, filepath, configuration=config, options=options)
+
+    # Generate a link
+    download_url = url_for('download_pdf', filename=filename, _external=True)
+    return jsonify({"message": "PDF generated successfully", "download_url": download_url})
+
+
+@app.route('/download-pdf/<filename>', methods=['GET'])
+def download_pdf(filename):
+    filepath = os.path.join(PDF_STORAGE_DIR, secure_filename(filename))
+    if not os.path.exists(filepath):
+        return jsonify({"error": "File not found"}), 404
+    return make_response(open(filepath, 'rb').read(), 200, {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': f'attachment; filename={filename}'
+    })
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
