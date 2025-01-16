@@ -18,7 +18,6 @@ options = {
     'margin-left': '0.75in',
 }
 
-# Directory to store generated PDFs
 PDF_STORAGE_DIR = 'pdf_storage'
 os.makedirs(PDF_STORAGE_DIR, exist_ok=True)  # Create if it doesn't exist
 
@@ -29,12 +28,8 @@ def generate_pdf():
     html_content = data.get('html', '')  # Get HTML part in JSON
     filename = secure_filename(data.get('filename', 'document.pdf'))  # filename option
     filepath = os.path.join(PDF_STORAGE_DIR, filename)
-
-    # Generate PDF and save to file
-    pdfkit.from_string(html_content, filepath, configuration=config, options=options)
-
-    # Generate a link
-    download_url = url_for('download_pdf', filename=filename, _external=True)
+    pdfkit.from_string(html_content, filepath, configuration=config, options=options) # conversion
+    download_url = url_for('download_pdf', filename=filename, _external=True) # link generation
     return jsonify({"message": "PDF generated successfully", "download_url": download_url})
 
 
